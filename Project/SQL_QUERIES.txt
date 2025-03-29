@@ -1,0 +1,247 @@
+--1 find number of businesses in each category
+
+
+
+
+with cte as 
+(
+select business_id,
+trim(A.value) as category
+from tabl_yelp_businesses,
+lateral split_to_table(categories,',') as A
+)
+select category, count(*) as no_of_businesses
+from cte
+group by 1
+order by 2 desc
+
+
+
+
+--2 Find the top 10 users who have reviewed the most businesses in the "Restaurants" category
+
+
+/* here we will not split the category into multiple rows as it is costly operation and directly use ilike operator */
+
+
+
+select t2.user_id,count(distinct t2.business_id)
+from tabl_yelp_businesses t1
+inner join tbl_yelp_reviews t2
+on t1.business_id = t2.business_id
+where t1.categories ilike ('%restaurant%')
+group by 1
+order by 2 desc
+limit 10
+
+
+
+
+
+
+
+--3 Find the most popular categories of businesses (based on the number of reviews)
+
+
+select trim(A.value) as category,count(t2.user_id) as no_of_reviews
+from tabl_yelp_businesses t1
+inner join tbl_yelp_reviews t2
+on t1.business_id = t2.business_id,
+lateral split_to_table(categories,',') as A
+group by 1
+order by 2 desc
+
+
+
+
+
+
+--4 Find the top 3 most recent reviews for each business
+
+with cte as 
+(
+select t1.*,t2.name,
+dense_rank() over(partition by t1.business_id order by review_date desc ) as rn
+from tbl_yelp_reviews t1
+inner join tabl_yelp_businesses t2
+on t1.business_id = t2.business_id
+)
+select *
+from cte
+where rn <= 3
+
+
+
+
+
+
+
+--5 Find the month with the highest number of reviews
+
+
+select  month(review_date) as review_month,
+count(*)as no_of_reviews
+from tbl_yelp_reviews
+group by 1
+order by 2 desc 
+limit 1
+
+
+
+
+
+
+-- 6 Find the percentage of 5-star reviews for each business
+
+select t1.business_id,t2.name,
+sum(case when review_star = 5 then 1 else 0 end) as five_star_reviews,
+sum(case when review_star is not null then 1 else 0 end) as total_reviews,
+100.0*sum(case when review_star = 5 then 1 else 0 end)/sum(case when review_star is not null then 1 else 0 end) as five_star_percent
+from tbl_yelp_reviews t1
+inner join tabl_yelp_businesses t2
+on t1.business_id = t2.business_id
+group by 1,2
+
+
+
+
+
+--7 Find the top 5 most reviewed businesses in each city
+
+with cte as 
+(
+select t1.business_id,t2.city,t2.name,count(*) as no_of_reviews
+from tbl_yelp_reviews t1
+inner join tabl_yelp_businesses t2
+on t1.business_id = t2.business_id
+group by 1,2,3
+order by city
+)
+select business_id,name,city
+from (
+select  business_id,name,city,
+row_number() over (partition by city order by no_of_reviews desc) as rn
+from cte
+)
+where rn <=5
+order by city
+
+
+
+
+
+
+
+--8 Find the average rating of businesses that have atleast 100 reviews
+
+with cte1 as(
+select t1.business_id,t2.name,count(*) as no_of_reviews
+from tbl_yelp_reviews t1
+inner join tabl_yelp_businesses t2
+on t1.business_id = t2.business_id
+group by 1,2
+),
+cte2 as (
+select business_id,name,no_of_reviews
+from cte1 where no_of_reviews >= 100
+)
+select cte2.business_id,cte2.name,cte2.no_of_reviews,avg(t.review_star) as avg_rating
+from cte2
+inner join tbl_yelp_reviews t
+on cte2.business_id = t.business_id
+group by 1,2,3
+order by 3
+
+
+
+--OR
+
+
+select t1.business_id,t2.name,count(*) as no_of_reviews,
+avg(t1.review_star)as avg_rating
+from tbl_yelp_reviews t1
+inner join tabl_yelp_businesses t2
+on t1.business_id = t2.business_id
+group by 1,2
+having count(*) >= 100
+order by 3 
+
+
+
+
+
+
+
+
+--9 List the top 10 users who have written the most reviews, along with the businesses they reviewed
+
+
+
+with cte as (
+select t1.user_id,count(*) as no_of_reviews
+from tbl_yelp_reviews t1
+inner join tabl_yelp_businesses t2
+on t1.business_id = t2.business_id
+group by 1
+order by no_of_reviews desc
+limit 10
+)
+select user_id,business_id
+from tbl_yelp_reviews
+where user_id in (select user_id from cte)
+group by 1,2
+order by 1
+
+
+
+
+
+
+--10 Find top 10 businesses with highest positive sentiment reviews
+
+
+select t1.business_id,t2.name,
+sum(case when sentiments = 'Positive' then 1 else 0 end) as positive_sentiments
+from tbl_yelp_reviews t1
+inner join tabl_yelp_businesses t2
+on t1.business_id = t2.business_id
+group by 1,2
+order by 3 desc
+limit 10
+
+
+
+--OR
+
+select t1.business_id,t2.name,
+count(*) as positive_sentiments
+from tbl_yelp_reviews t1
+inner join tabl_yelp_businesses t2
+on t1.business_id = t2.business_id
+where sentiments = 'Positive'
+group by 1,2
+order by positive_sentiments desc
+limit 10
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

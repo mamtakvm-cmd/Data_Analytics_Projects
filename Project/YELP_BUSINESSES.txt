@@ -1,0 +1,27 @@
+create or replace table yelp_businesses (business_text variant);
+
+
+
+copy into yelp_businesses
+from 's3://namastesqlin/yelp/yelp_academic_dataset_business.json'
+CREDENTIALS = (
+AWS_KEY_ID = 'AKIA57VDLZ3QLJU5MEY3'
+AWS_SECRET_KEY = 'JYN82cu9dTekMlpimxLJOBhEfjNCUZMf3oIllJJc'
+)
+
+FILE_FORMAT = (TYPE = JSON);
+
+
+
+create or replace table tabl_yelp_businesses as 
+select business_text:business_id::string as business_id
+,business_text:name::string as name
+,business_text:city::string as city
+,business_text:state::string as state
+,business_text:review_count::integer as review_count
+,business_text:stars::number as review_stars
+,business_text:categories::string as categories
+from yelp_businesses 
+
+
+select * from tabl_yelp_businesses limit 100
