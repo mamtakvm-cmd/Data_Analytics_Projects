@@ -4,7 +4,7 @@ create or replace table yelp_businesses (business_text variant);
 
 copy into yelp_businesses
 from 's3://namastesqlin/yelp/yelp_academic_dataset_business.json'
-Add here credentials
+aws iam rule access keys to be added
 
 FILE_FORMAT = (TYPE = JSON);
 
