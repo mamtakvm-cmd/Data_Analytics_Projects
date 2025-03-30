@@ -6,11 +6,7 @@ create or replace table yelp_reviews(review_text variant)
 
 copy into yelp_reviews
 from 's3://namastesqlin/yelp/'
-credentials = (
-AWS_KEY_ID = 'AKIA57VDLZ3QLJU5MEY3'
-AWS_SECRET_KEY = 'JYN82cu9dTekMlpimxLJOBhEfjNCUZMf3oIllJJc'
-)
-
+Add here credentials
 
 FILE_FORMAT = (TYPE = JSON);
 
